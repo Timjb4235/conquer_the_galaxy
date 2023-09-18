@@ -36,9 +36,14 @@ class Display:
         self.building_types = ("Houses", "Mines", "Power Plants", "Op Centres", "Psychic Centres", "Barracks")
         self.building_displays = []
         self.building_display_labels = []
+        self.building_entries = []
         for i in range(len(self.building_types)):
             self.building_displays.append(ttk.Label(master = self.right_frame, text = 0))
             self.building_display_labels.append(ttk.Label(master = self.right_frame, text = self.building_types[i]))
+            self.building_entries.append(ttk.Entry(master = self.right_frame))
+        # Need to label columns here!
+        # Need to display spare land also
+        # Need building numbers to be correct
 
 
         """

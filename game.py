@@ -51,27 +51,14 @@ class Player:
         return self.land - sum(self.buildings.values())
     
     def draftable_pop(self):
-        return self.pop * 0.01
-
-    """   
-    def get_building_requests(self):
-        building_requests = {
-            "Houses": int(house_entry.get()),
-            "Mines": int(mine_entry.get()),
-            "Power Plants": int(pplant_entry.get()),
-            "Op Centres": int(opcentre_entry.get()),
-            "Psychic Centres": int(psycentre_entry.get()),
-            "Barracks": int(barracks_entry.get())  
-        }
-        return building_requests
-    """
+        return int(self.pop * 0.01)
+    # Needs to drop with use.
         
     def update_buildings(self, build_requests):
         try:
             if sum(build_requests.values()) <= self.spare_land() and min(build_requests.values()) >= 0:
                 for key in self.buildings:
                     self.buildings[key] += build_requests[key]
-                # refresh window!
             else:
                 print("Not enough spare land!")
         except:
@@ -91,8 +78,10 @@ class Player:
         try:
             if sum(draft_requests.values()) <= self.draftable_pop() and min(draft_requests.values()) >= 0:
                 for key in draft_requests:
+                    print(key)
+                    print(self.units[key])
+                    print(draft_requests[key])
                     self.units[key] += draft_requests[key]
-                    # refresh window!
             else:
                 print("Not enough draftable population!")
         except:
@@ -116,9 +105,10 @@ class Planet:
 
 if __name__ == "__main__":
     game = Game("Venus")
-    game.display = display.Display()
+    display = display.Display()
     planets = []
-    game.display.planets = planets
+    display.planets = planets
+    display.player = game.player
     n = randint(1, 7)
     # Currently only creates one system. Can adapt to create multiple.
     with open(f"names_{n}.txt", "r") as f:
@@ -127,6 +117,6 @@ if __name__ == "__main__":
         planets.append(Planet(i, names.pop(), "System 1", 500, 10000, 1000, "Standard Planet", "Independent", 500, 0, 0))
         game.database.populate_galaxy(planets[i])
     game.database.print()
-    game.display.display_system("System 1")
+    display.display_system("System 1")
     tk.mainloop()
 

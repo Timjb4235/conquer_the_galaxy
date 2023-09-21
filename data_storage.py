@@ -1,6 +1,6 @@
 import sqlite3
 
-class database:
+class Database:
 
     def __init__(self, player_name):
         # Create db or connect:
@@ -22,23 +22,17 @@ class database:
             print("table exists")
         except sqlite3.OperationalError:
             print("Table already exists!")
+            self.connection.execute("DELETE FROM Planets;")
         self.connection.commit()
 
-    def populate_galaxy(self, planet):
+    #def populate_galaxy(self, planet):
+    def populate_galaxy(self, values):
         # Adds planet to database
         query = "INSERT INTO Planets(ID, Name, System, Land, Gold, Pop, Type, \
                                 Owner, Defence, Psy_defence, Attack) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);"
-        query_data = (planet.id, planet.name, planet.system, planet.land, planet.gold, planet.pop, planet.type,
-                                planet.owner, planet.defence, planet.psy_defence, planet.attack)
-
-        self.connection.execute(query, query_data)
-        self.connection.commit()
-
-    def update(self, planet):
-        # Updates database
-        query = "UPDATE Planets SET Land = ?, Gold = ?, Pop = ?, Owner = ?, Defence = ?, Psy_defence = ?, Attack = ? \
-            WHERE ID = ?;"
-        query_data = (planet.land, planet.gold, planet.pop, planet.owner, planet.defence, planet.psy_defence, planet.attack, planet.id)
+        #query_data = (planet.id, planet.name, planet.system, planet.land, planet.gold, planet.pop, planet.type,
+        #                        planet.owner, planet.defence, planet.psy_defence, planet.attack)
+        query_data = values
         self.connection.execute(query, query_data)
         self.connection.commit()
 
@@ -51,27 +45,23 @@ class database:
     def disconnect(self):
         self.connection.close()
 
-    def load_planet_data(self):
+    def load_all_planet_data(self):
         # Retrieves planet data from database, returns as a list of tuples.
         query = "SELECT * FROM Planets"
         self.cursor.execute(query)
         return self.cursor.fetchall()
             
-
+    def load_planet_data(self, name, heading):
+        query = f"SELECT {heading} FROM Planets WHERE Name = '{name}'"
+        self.cursor.execute(query)
+        return self.cursor.fetchone()[0]
     
-
-#sqlite_connection = sqlite3.connect("test.db")
-
-"""
-sqlite_connection.execute('''CREATE TABLE Planets (
-                          ID INT NOT NULL,
-                          Name TINYTEXT NOT NULL,
-                          Land INT,
-                          Attack INT,
-                          Defence INT,
-                          Gold INT,
-                          Power INT);''')
-"""
+    def load_system_display(self, system):
+        query = f"SELECT Name, Land, Gold, Pop, Type, Owner FROM Planets WHERE System = '{system}'"
+        self.cursor.execute(query)
+        return self.cursor.fetchall()
+    
+#planet.name, planet.land, planet.gold, planet.pop, planet.type, planet.owner
 
 #sqlite_connection.execute("INSERT INTO Planets(ID, Name, Land, Attack, Defence, Gold, Power) VALUES (1, 'Mars', 500, 0, 500, 10000, 5000);")
 

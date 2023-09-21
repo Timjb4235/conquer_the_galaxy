@@ -9,7 +9,7 @@ class Game:
         self.name = name
         self.round = 0
         self.phase = 1
-        self.database = data_storage.database(name)
+        self.database = data_storage.Database(name)
         self.player = Player()
 
 class Player:
@@ -87,36 +87,29 @@ class Player:
         except:
             print("Entries must be integers!")
 
+"""
 class Planet:
 
-    def __init__(self, id, name, system, land, gold, pop, type, owner, defence, psy_defence, attack = 0):
+    def __init__(self, id):
 
         self.id = id
-        self.name = name
-        self.system = system
-        self.land = land
-        self.gold = gold
-        self.pop = pop
-        self.type = type
-        self.owner = owner
-        self.defence = defence
-        self.psy_defence = psy_defence
-        self.attack = attack
+"""    
 
 if __name__ == "__main__":
-    game = Game("Venus")
+    game = Game("closerdata")
     display = display.Display()
     planets = []
     display.planets = planets
     display.player = game.player
+    display.database = game.database
     n = randint(1, 7)
     # Currently only creates one system. Can adapt to create multiple.
     with open(f"names_{n}.txt", "r") as f:
         names = f.readlines()
     for i in range(10):
-        planets.append(Planet(i, names.pop(), "System 1", 500, 10000, 1000, "Standard Planet", "Independent", 500, 0, 0))
-        game.database.populate_galaxy(planets[i])
-    game.database.print()
+        #planets.append(Planet(i, names.pop(), "System 1", 500, 10000, 1000, "Standard Planet", "Independent", 500, 0, 0))
+        #game.database.populate_galaxy(planets[i])
+        game.database.populate_galaxy((i, names.pop(), "System 1", 500, 10000, 1000, "Standard Planet", "Independent", 500, 0, 0))
     display.display_system("System 1")
     tk.mainloop()
 

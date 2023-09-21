@@ -99,8 +99,14 @@ class Display:
 
         for child in self.right_frame.winfo_children():
             child.grid_forget()
-        for planet in [planet for planet in self.planets if planet.system == system]:
-            self.tree.insert("", tk.END, values = (planet.name, planet.land, planet.gold, planet.pop, planet.type, planet.owner))
+        system_data = self.database.load_system_display(system)
+        for row in system_data:
+            self.tree.insert("", tk.END, values = row)
+
+
+        #for planet in [planet for planet in self.planets if planet.system == system]:
+            #self.tree.insert("", tk.END, values = (planet.name, planet.land, planet.gold, planet.pop, planet.type, planet.owner))
+
         self.tree.grid(row = 0, column = 0, sticky = "NSEW")
 
     def display_building(self):
@@ -136,6 +142,9 @@ class Display:
         self.draftable_pop_display.grid(row = len(self.building_types) + 1, column = 4)
         self.draftable_pop_display_label.grid(row = len(self.building_types) + 1, column = 3)
 
+    def display_research(self):
+        for child in self.right_frame.winfo_children():
+            child.grid_forget()
 
 
     def get_building_requests(self):

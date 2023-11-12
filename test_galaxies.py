@@ -16,7 +16,7 @@ def test_spare_land(game):
 
 def test_draftable_pop(game):
     # Checking initial draftable pop value is correct
-    assert game.player.draftable_pop() == 50
+    assert game.player.draftable_pop == 40
 
 def test_update_buildings_success(game):
     building_possibility = {
@@ -51,3 +51,10 @@ def test_draft_units_success(game):
             "Psychics": 1,
             "Operatives": 3
         }
+    
+def test_mission_success(game):
+    game.player.units["Operatives"] += 3
+    assert game.player.mission_succeeds(1, "steal") == True
+    assert game.player.mission_succeeds(4, "sabotage") == False
+
+

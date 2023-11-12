@@ -18,6 +18,7 @@ class Database:
                                 Owner TINYTEXT,
                                 Defence INT,
                                 Psy_defence INT,
+                                Op_defence INT,
                                 Attack INT);''')
             print("table exists")
         except sqlite3.OperationalError:
@@ -25,16 +26,18 @@ class Database:
             self.connection.execute("DELETE FROM Planets;")
         self.connection.commit()
 
-    #def populate_galaxy(self, planet):
     def populate_galaxy(self, values):
         # Adds planet to database
+        # Is running many queries slowing things down?
         query = "INSERT INTO Planets(ID, Name, System, Land, Gold, Pop, Type, \
-                                Owner, Defence, Psy_defence, Attack) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);"
-        #query_data = (planet.id, planet.name, planet.system, planet.land, planet.gold, planet.pop, planet.type,
-        #                        planet.owner, planet.defence, planet.psy_defence, planet.attack)
+                                Owner, Defence, Psy_defence, Op_defence, Attack) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);"
         query_data = values
         self.connection.execute(query, query_data)
-        self.connection.commit()
+    
+    def tick_planet(self, id, new_gold, new_pop, new_defence, new_attack):
+        query = "UPDATE Planets SET Gold = ?, Pop = ?, Defence = ?, Attack = ? WHERE ID = ?"
+        query_data = (new_gold, new_pop, new_defence, new_attack, id)
+        self.cursor.execute(query, query_data)
 
     def print(self):
         query = "SELECT * FROM Planets"
@@ -56,42 +59,20 @@ class Database:
         self.cursor.execute(query)
         return self.cursor.fetchone()[0]
     
+    def update_planet_data(self, name, heading, value):
+        query = f"UPDATE Planets SET {heading} = ? WHERE Name = '{name}'"
+        query_data = (value)
+        self.cursor.execute(query, query_data)
+    
     def load_system_display(self, system):
         query = f"SELECT Name, Land, Gold, Pop, Type, Owner FROM Planets WHERE System = '{system}'"
         self.cursor.execute(query)
         return self.cursor.fetchall()
     
-#planet.name, planet.land, planet.gold, planet.pop, planet.type, planet.owner
-
-#sqlite_connection.execute("INSERT INTO Planets(ID, Name, Land, Attack, Defence, Gold, Power) VALUES (1, 'Mars', 500, 0, 500, 10000, 5000);")
-
-#sqlite_connection.commit()
-
-#cursor = sqlite_connection.cursor()
-
-#query = "SELECT * FROM Planets"
-
-#cursor.execute(query)
-
-#print(cursor.fetchall())
-
-#sqlite_connection.close()
-
-
-
-
-"""
-sqlite_connection = sqlite3.connect("test.db")
-
-cursor = sqlite_connection.cursor()
-
-query = '''       '''
-
-cursor.execute(query)
-
-cursor.fetchall() --> returns query results as a list
-
-sqlite_connection.commit()
-
-sqlite_connection.close()
-"""
+    def get_system_list(self):
+        query = "SELECT DISTINCT System FROM Planets"
+        self.cursor.execute(query)
+        return [item[0] for item in self.cursor.fetchall()]
+    
+    def commit(self):
+        self.connection.commit()

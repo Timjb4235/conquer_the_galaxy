@@ -1,6 +1,6 @@
 import data_storage
 import display
-from random import randint
+from random import randint, uniform
 import tkinter as tk
 
 class Game:
@@ -10,16 +10,32 @@ class Game:
         self.round = 0
         self.phase = 1
         self.database = data_storage.Database(name)
-        self.player = Player()
+        self.player = Player(name)
+
+    def tick(self):
+        # Update player stats:
+        self.player.tick()
+        # Update stats of other planets:
+        planets = self.database.load_all_planet_data()
+        for planet in planets:
+            new_gold = int(planet[4] * uniform(0.98, 1.03))
+            new_pop = int(planet[5] * uniform(0.99, 1.02))
+            new_defence = int(planet[8] * uniform(1, 1.1))
+            new_attack = int(planet[10] * uniform(1, 1.05))
+            self.database.tick_planet(planet[0], new_gold, new_pop, new_defence, new_attack)
+        self.database.commit()
 
 class Player:
 
-    def __init__(self):
+    def __init__(self, name):
         # Values can be in thousands
+        self.name = name
         self.land = 500
         self.gold = 10000
         self.power = 5000
-        self.pop = 5000
+        self.pop = 4000
+        self.draftable_pop = int(self.pop * 0.01)
+        self.op_missions = 10
         self.buildings = {
             "Houses": 80,
             "Mines": 100,
@@ -28,14 +44,29 @@ class Player:
             "Psychic Centres": 1,
             "Barracks": 80
             }
-        self.research = {
+        self.research_points = {
             "Space Exploration": 0,
             "Terraforming": 0,
             "Lunar Colonies": 0,
-            "Superweapons": 0,
-            "": 0,
-            "": 0
+            "Shields": 0,
+            "Fusion Power": 0,
+            "Cloud Cities": 0,
+            "Asteroid Mining": 0,
+            "Stardocks": 0,
+            "Superweapons": 0
         }
+        self.assigned_scientists = {
+            "Space Exploration": 0,
+            "Terraforming": 0,
+            "Lunar Colonies": 0,
+            "Shields": 0,
+            "Fusion Power": 0,
+            "Cloud Cities": 0,
+            "Asteroid Mining": 0,
+            "Stardocks": 0,
+            "Superweapons": 0
+        }
+
         self.units = {
             "Soldiers": 0,
             "Scientists": 0,
@@ -47,12 +78,29 @@ class Player:
         self.superweapons = {
         }
 
+    def tick(self):
+        # Update player stats
+        self.gold += self.pop
+        self.gold += 100 * self.buildings["Mines"]
+        self.pop = min(self.pop * 1.01, self.buildings["Houses"] * 50)
+        self.power = self.power + self.buildings["Power Plants"] * 60 - int(self.pop * 0.1) - sum(self.buildings.values())
+        self.power = min(self.power, self.buildings["Power Plants"] * 100)
+        if self.op_missions < 10:
+            self.op_missions += 1
+        for key in self.research_points:
+            self.research_points[key] += self.assigned_scientists[key]
+        self.update_draftable_pop()
+              
+
     def spare_land(self):
         return self.land - sum(self.buildings.values())
     
-    def draftable_pop(self):
-        return int(self.pop * 0.01)
-    # Needs to drop with use.
+    def spare_scientists(self):
+        return self.units["Scientists"] - sum(self.assigned_scientists.values())
+    
+    def update_draftable_pop(self):
+        # Returns the number of draftable pop for the turn
+        self.draftable_pop = int(self.pop * 0.01)
         
     def update_buildings(self, build_requests):
         try:
@@ -64,52 +112,65 @@ class Player:
         except:
             print("Entries must be integers!")
 
-    """
-    def get_draft_requests(self):
-        draft_requests = {
-            "Soldiers": int(soldier_entry.get())
-            "Scientists": int(scientist_entry.get())
-            "Psychics": int(psychic_entry.get())
-            "Operatives": int(operative_entry.get())
-        }
-        return draft_requests
-    """
+    def update_scis(self, sci_requests):
+        try:
+            if sum(sci_requests.values()) <= self.spare_scientists() and min(sci_requests.values()) >= 0:
+                for key in self.assigned_scientists:
+                    self.assigned_scientists[key] += sci_requests[key]
+            else:
+                print("Not enough spare scientists!")
+        except:
+            print("Entries must be integers!")
+
+    def clear_scis(self):
+        for key in self.assigned_scientists:
+            self.assigned_scientists[key] = 0
+
     def draft_units(self, draft_requests):
         try:
-            if sum(draft_requests.values()) <= self.draftable_pop() and min(draft_requests.values()) >= 0:
+            if sum(draft_requests.values()) <= self.draftable_pop and min(draft_requests.values()) >= 0:
                 for key in draft_requests:
-                    print(key)
-                    print(self.units[key])
-                    print(draft_requests[key])
                     self.units[key] += draft_requests[key]
+                    self.draftable_pop -= draft_requests[key]
             else:
                 print("Not enough draftable population!")
         except:
             print("Entries must be integers!")
 
-"""
-class Planet:
+    def spy(self, planet, attribute):
+        self.op_missions -= 1
+        if self.mission_succeeds(data_storage.load_planet_data(planet, "Op_defence") , type = "spy"):
+            # Adjust op defence of target?
+            # Send information to the display
+            pass
+        else:
+            # Adjust op defence of target?
+            # Send information to the display
+            pass
 
-    def __init__(self, id):
-
-        self.id = id
-"""    
-
+    def mission_succeeds(self, target_op_defence, type):
+        modifiers = {
+            "spy": 0.7,
+            "steal": 1.1,
+            "sabotage": 2.0
+        }
+        pass_threshold = target_op_defence * uniform(0.5, 1.5) * modifiers[type]
+        return self.units["Operatives"] >= pass_threshold
+        
 if __name__ == "__main__":
-    game = Game("closerdata")
-    display = display.Display()
-    planets = []
-    display.planets = planets
+    game = Game("gjgdjdgjdgjdg")
+    systems = ["System One", "System Two", "System Three", "System Four", "System Five", "System Six", "System Seven"]
+    display = display.Display(systems, game.tick)
     display.player = game.player
     display.database = game.database
-    n = randint(1, 7)
-    # Currently only creates one system. Can adapt to create multiple.
-    with open(f"names_{n}.txt", "r") as f:
-        names = f.readlines()
-    for i in range(10):
-        #planets.append(Planet(i, names.pop(), "System 1", 500, 10000, 1000, "Standard Planet", "Independent", 500, 0, 0))
-        #game.database.populate_galaxy(planets[i])
-        game.database.populate_galaxy((i, names.pop(), "System 1", 500, 10000, 1000, "Standard Planet", "Independent", 500, 0, 0))
-    display.display_system("System 1")
+    sysname_files = [1, 2, 3, 4, 5, 6, 7]
+    for system in systems:
+        n = sysname_files.pop(randint(0, len(sysname_files) - 1))
+        with open(f"names_{n}.txt", "r") as f:
+            names = f.readlines()
+        for i in range(10):
+            game.database.populate_galaxy((10*n + i, names.pop(randint(1, len(names) - 1)), system, 500, 10000, 1000, "Standard Planet", "Independent", 500, 0, 0, 0))
+    game.database.commit()
+    display.display_system("System One")
     tk.mainloop()
 

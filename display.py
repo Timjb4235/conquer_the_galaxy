@@ -126,7 +126,7 @@ class Display:
         self.system_choice = ttk.OptionMenu(self.options_frame, self.system_var, "System One", *systems, command = self.display_system)
 
         # Creating operatives items
-        
+        self.ops_textbox = tk.Text(master = self.right_frame, width = 600, height = 100)
 
         #tk.mainloop()
 
@@ -233,6 +233,9 @@ class Display:
         for child in self.right_frame.winfo_children():
             child.grid_forget()
         self.system_choice.pack_forget()
+        self.ops_textbox.grid()
+        self.ops_textbox.insert(tk.END, f"You have {} operatives, and {} op missions remaining. \nWhat mission would you like to send them on?")
+        self.ops_textbox.configure(state = "disabled")
 
 
     def get_building_requests(self):

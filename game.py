@@ -132,21 +132,28 @@ class Player:
                 for key in draft_requests:
                     self.units[key] += draft_requests[key]
                     self.draftable_pop -= draft_requests[key]
+                    print(self.units["Operatives"])
             else:
                 print("Not enough draftable population!")
         except:
             print("Entries must be integers!")
 
     def spy(self, planet, attribute):
+        # Called by the display
         self.op_missions -= 1
-        if self.mission_succeeds(data_storage.load_planet_data(planet, "Op_defence") , type = "spy"):
-            # Adjust op defence of target?
-            # Send information to the display
-            pass
+        planet_op_defence = self.database.load_planet_data(planet, "Op_defence")
+        if self.mission_succeeds(planet_op_defence, type = "spy"):
+            # Increases target's op defence, and player takes op losses
+            self.database.update_planet_data(planet, "Op defence", planet_op_defence + 1)
+            op_losses = self.units["Operatives"] // 20
+            self.units["Operatives"] -= op_losses       
+            return f"Mission successful! You have lost {op_losses} operatives during the mission."
         else:
-            # Adjust op defence of target?
-            # Send information to the display
-            pass
+            # Increases target's op defence, and player takes op losses
+            self.database.update_planet_data(planet, "Op defence", planet_op_defence + 1)
+            op_losses = self.units["Operatives"] // 10
+            self.units["Operatives"] -= op_losses
+            return "Mission failed! You have lost {op_losses} operatives during the mission."
 
     def mission_succeeds(self, target_op_defence, type):
         modifiers = {
@@ -158,11 +165,9 @@ class Player:
         return self.units["Operatives"] >= pass_threshold
         
 if __name__ == "__main__":
-    game = Game("gjgdjdgjdgjdg")
+    game = Game("optesting")
     systems = ["System One", "System Two", "System Three", "System Four", "System Five", "System Six", "System Seven"]
-    display = display.Display(systems, game.tick)
-    display.player = game.player
-    display.database = game.database
+    op_missions = ["Spy", "Steal"]
     sysname_files = [1, 2, 3, 4, 5, 6, 7]
     for system in systems:
         n = sysname_files.pop(randint(0, len(sysname_files) - 1))
@@ -171,6 +176,8 @@ if __name__ == "__main__":
         for i in range(10):
             game.database.populate_galaxy((10*n + i, names.pop(randint(1, len(names) - 1)), system, 500, 10000, 1000, "Standard Planet", "Independent", 500, 0, 0, 0))
     game.database.commit()
-    display.display_system("System One")
+    display = display.Display(systems, op_missions, game.database, game.tick)
+    display.player = game.player
+    display.display_system()
     tk.mainloop()
 

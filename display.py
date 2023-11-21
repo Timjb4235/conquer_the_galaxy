@@ -3,7 +3,7 @@ from tkinter import ttk
 
 class Display:
 
-    def __init__(self, systems, tick):
+    def __init__(self, systems, op_missions, database, tick):
         self.root = tk.Tk()
         self.root.title("Conquer the Galaxy")
         self.root.geometry("1378x226")
@@ -15,6 +15,8 @@ class Display:
         self.options_frame = ttk.Frame(master = self.root)
         self.options_frame.grid(row = 0, column = 2, sticky = "ne")
         self.root.columnconfigure(1, weight = 12)
+        self.database = database
+        self.mode = "system"
 
         # Placing buttons:
         self.button_frame = ttk.Frame(master = self.left_frame)
@@ -123,18 +125,32 @@ class Display:
         self.tree.heading("owner", text = "Owner")
         self.system_var = tk.StringVar()
         self.system_var.set("Select System")
-        self.system_choice = ttk.OptionMenu(self.options_frame, self.system_var, "System One", *systems, command = self.display_system)
+        self.system_choice = ttk.OptionMenu(self.options_frame, self.system_var, "System One", *systems, command = self.change_system)
+
+        # Creating targeting menu
+        self.target_var = tk.StringVar()
+        self.target_var.set("Select Planet")
+        #        menu = self.om["menu"] menu.delete(0, "end")
+        # configure with list via self.database.get_planet_names(self, system) 
+        targets = self.database.get_planet_names("System One")
+        self.target_choice = ttk.OptionMenu(self.options_frame, self.target_var, self.target_var.get(), *targets, command = None)
 
         # Creating operatives items
         self.ops_textbox = tk.Text(master = self.right_frame, width = 600, height = 100)
+        self.op_mission_var = tk.StringVar()
+        self.op_mission_var.set("Select Mission")
+        self.op_mission_choice = ttk.OptionMenu(self.options_frame, self.op_mission_var, "Spy", *op_missions, command = self.display_operatives)
 
         #tk.mainloop()
 
     def display_planet_data(self):
 
+        self.mode = "planet"
         for child in self.right_frame.winfo_children():
             child.grid_forget()
         self.system_choice.pack_forget()
+        self.op_mission_choice.pack_forget()
+        self.target_choice.pack_forget()
         self.name_display.grid(column = 1, row = 0)
         self.name_display_label.grid(column = 0, row = 0)
         self.land_display.grid(column = 1, row = 1)
@@ -151,11 +167,13 @@ class Display:
         self.power_display.config(text = self.player.power)
         self.population_display.config(text = self.player.pop)
         
-    def display_system(self, system = "System One"):
+    def display_system(self):
 
+        self.mode = "system"
+        system = self.system_var.get()
         for child in self.right_frame.winfo_children():
             child.grid_forget()
-        print(f"System = {system}")
+        self.op_mission_choice.pack_forget()
         system_data = self.database.load_system_display(system)
         for row in self.tree.get_children():
             self.tree.delete(row)
@@ -166,9 +184,12 @@ class Display:
 
     def display_building(self):
         
+        self.mode = "building"
         for child in self.right_frame.winfo_children():
             child.grid_forget()
         self.system_choice.pack_forget()
+        self.op_mission_choice.pack_forget()
+        self.target_choice.pack_forget()
         for i in range(len(self.building_types)):
             self.building_values[i] = self.player.buildings[self.building_types[i]]
             self.building_displays[i].config(text = self.building_values[i])
@@ -183,9 +204,12 @@ class Display:
         self.spare_land_display_label.grid(row = len(self.building_types) + 1, column = 3)
 
     def display_units(self):
+        self.mode = "units"
         for child in self.right_frame.winfo_children():
             child.grid_forget()
         self.system_choice.pack_forget()
+        self.op_mission_choice.pack_forget()
+        self.target_choice.pack_forget()
         for i in range(len(self.draft_types)):
             self.draft_values[i] = self.player.units[self.draft_types[i]]
             self.draft_displays[i].config(text = self.draft_values[i])
@@ -200,9 +224,12 @@ class Display:
         self.draftable_pop_display_label.grid(row = len(self.building_types) + 1, column = 3)
 
     def display_research(self):
+        self.mode = "research"
         for child in self.right_frame.winfo_children():
             child.grid_forget()
         self.system_choice.pack_forget()
+        self.op_mission_choice.pack_forget()
+        self.target_choice.pack_forget()
         for i in range(len(self.research_types)):
             self.research_values[i] = self.player.research_points[self.research_types[i]]
             self.sci_displays[i].config(text = self.player.assigned_scientists[self.research_types[i]])
@@ -221,21 +248,37 @@ class Display:
             self.spare_scis_display_label.grid(row = len(self.building_types) + 1, column = 4)
 
     def display_shields(self):
+        self.mode = "shields"
         for child in self.right_frame.winfo_children():
             child.grid_forget()
         self.system_choice.pack_forget()
+        self.op_mission_choice.pack_forget()
+        self.target_choice.pack_forget()
         for i in range(len(self.shield_types)):
             self.shield_display_labels[i].grid(row = i + 1, column = 0)
             self.shield_cost_displays[i].grid(row = i + 1, column = 2)
             self.shield_sliders[i].grid(row = i + 1, column = 1, padx = 10)
 
-    def display_operatives(self):
+    def display_operatives(self, op_mission = "Spy"):
+        self.mode = "operatives"
         for child in self.right_frame.winfo_children():
             child.grid_forget()
-        self.system_choice.pack_forget()
+        # self.system_choice.pack_forget()
+        self.system_choice.pack()
+        self.target_choice.pack()
         self.ops_textbox.grid()
-        self.ops_textbox.insert(tk.END, f"You have {} operatives, and {} op missions remaining. \nWhat mission would you like to send them on?")
+        self.ops_textbox.configure(state = "normal")
+        self.ops_textbox.delete("1.0", "end")
+        self.ops_textbox.insert(tk.END, f"You have {self.player.units['Operatives']} operatives, and {self.player.op_missions} op missions remaining. \nWhat mission would you like to send them on?")
         self.ops_textbox.configure(state = "disabled")
+        self.op_mission_choice.pack()
+
+    def change_system(self, system):
+        targets = self.database.get_planet_names(system)
+        self.target_choice.set_menu(targets[0], *targets)
+        self.system_var.set(system)
+        if self.mode == "system":
+            self.display_system()
 
 
     def get_building_requests(self):

@@ -69,6 +69,11 @@ class Database:
         self.cursor.execute(query)
         return self.cursor.fetchall()
     
+    def get_planet_names(self, system):
+        query = f"SELECT Name FROM Planets WHERE System = '{system}'"
+        self.cursor.execute(query)
+        return [item[0] for item in self.cursor.fetchall()]
+    
     def get_system_list(self):
         query = "SELECT DISTINCT System FROM Planets"
         self.cursor.execute(query)

@@ -83,8 +83,10 @@ class Player:
         self.gold += self.pop
         self.gold += 100 * self.buildings["Mines"]
         self.pop = min(self.pop * 1.01, self.buildings["Houses"] * 50)
+        # Should this be max?
         self.power = self.power + self.buildings["Power Plants"] * 60 - int(self.pop * 0.1) - sum(self.buildings.values())
         self.power = min(self.power, self.buildings["Power Plants"] * 100)
+        # Should this be max?
         if self.op_missions < 10:
             self.op_missions += 1
         for key in self.research_points:
@@ -138,22 +140,40 @@ class Player:
         except:
             print("Entries must be integers!")
 
-    def spy(self, planet, attribute):
+    def spy(self, planet, attribute, database):
         # Called by the display
         self.op_missions -= 1
-        planet_op_defence = self.database.load_planet_data(planet, "Op_defence")
+        planet_op_defence = database.load_planet_data(planet, "Op_defence")
         if self.mission_succeeds(planet_op_defence, type = "spy"):
             # Increases target's op defence, and player takes op losses
-            self.database.update_planet_data(planet, "Op defence", planet_op_defence + 1)
+            database.update_planet_data(planet, "Op_defence", planet_op_defence + 1)
             op_losses = self.units["Operatives"] // 20
             self.units["Operatives"] -= op_losses       
-            return f"Mission successful! You have lost {op_losses} operatives during the mission."
+            return f"Mission successful! You have lost {op_losses} operatives during the mission.\n"
         else:
             # Increases target's op defence, and player takes op losses
-            self.database.update_planet_data(planet, "Op defence", planet_op_defence + 1)
+            database.update_planet_data(planet, "Op_defence", planet_op_defence + 2)
             op_losses = self.units["Operatives"] // 10
             self.units["Operatives"] -= op_losses
-            return "Mission failed! You have lost {op_losses} operatives during the mission."
+            return f"Mission failed! You have lost {op_losses} operatives during the mission.\n"
+        
+    def steal(self, planet, attribute, database):
+        # Called by the display
+        self.op_missions -= 1
+        planet_op_defence = database.load_planet_data(planet, "Op_defence")
+        if self.mission_succeeds(planet_op_defence, type = "steal"):
+            # Increases target's op defence, and player takes op losses
+            database.update_planet_data(planet, "Op_defence", planet_op_defence + 2)
+            op_losses = self.units["Operatives"] // 20
+            self.units["Operatives"] -= op_losses       
+            return f"Mission successful! You have lost {op_losses} operatives during the mission.\n"
+        else:
+            # Increases target's op defence, and player takes op losses
+            database.update_planet_data(planet, "Op_defence", planet_op_defence + 3)
+            op_losses = self.units["Operatives"] // 10
+            self.units["Operatives"] -= op_losses
+            return f"Mission failed! You have lost {op_losses} operatives during the mission.\n"
+
 
     def mission_succeeds(self, target_op_defence, type):
         modifiers = {

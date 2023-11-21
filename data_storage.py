@@ -60,8 +60,9 @@ class Database:
         return self.cursor.fetchone()[0]
     
     def update_planet_data(self, name, heading, value):
-        query = f"UPDATE Planets SET {heading} = ? WHERE Name = '{name}'"
-        query_data = (value)
+        print(f"{name}, {heading}, {value}")
+        query = f"UPDATE Planets SET {heading} = ? WHERE Name = ?"
+        query_data = (value, name)
         self.cursor.execute(query, query_data)
     
     def load_system_display(self, system):

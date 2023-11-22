@@ -1,5 +1,6 @@
 import tkinter as tk
 from tkinter import ttk
+from tkinter import scrolledtext as st
 
 class Display:
 
@@ -130,17 +131,14 @@ class Display:
         # Creating targeting menu
         self.target_var = tk.StringVar()
         self.target_var.set(self.database.get_planet_names("System One")[0])
-        #        menu = self.om["menu"] menu.delete(0, "end")
-        # configure with list via self.database.get_planet_names(self, system) 
         targets = self.database.get_planet_names("System One")
         self.target_choice = ttk.OptionMenu(self.options_frame, self.target_var, self.target_var.get(), *targets, command = None)
 
         # Creating operatives items
-        self.ops_textbox = tk.Text(master = self.right_frame, width = 600, height = 100)
+        self.ops_textbox = st.ScrolledText(master = self.right_frame, width = 147, height = 13.5)
         self.op_mission_var = tk.StringVar()
         self.op_mission_var.set("Select Mission")
         self.op_mission_choice = ttk.OptionMenu(self.options_frame, self.op_mission_var, "Spy", *op_missions)
-        # Do I need this to call my whole send ops fn?
         self.send_ops_button = ttk.Button(master = self.options_frame, text = "Send Operatives", command = self.send_ops)
 
         #tk.mainloop()
@@ -345,10 +343,15 @@ class Display:
         # Check op mission number
         mission = self.op_mission_var.get()
         self.ops_textbox.configure(state = "normal")
-        if mission == "Spy":
-            self.ops_textbox.insert(tk.END, self.player.spy(self.target_var.get(), attribute = "Population", database = self.database))
-        elif mission == "Steal":
-            self.ops_textbox.insert(tk.END, self.player.steal(self.target_var.get(), attribute = "Population", database = self.database))
+        if self.player.units["Operatives"] <= 0:
+            self.ops_textbox.insert(tk.END, "You do not have enough operatives to carry out this mission! \n")
+        elif self.player.op_missions <= 0:
+            self.ops_textbox.insert(tk.END, "You do not have any op missions remaining this turn! \n")
+        else:
+            if mission == "Spy":
+                self.ops_textbox.insert(tk.END, self.player.spy(self.target_var.get(), attribute = "Pop", database = self.database))
+            elif mission == "Steal":
+                self.ops_textbox.insert(tk.END, self.player.steal(self.target_var.get(), attribute = "Pop", database = self.database))
         self.ops_textbox.configure(state = "disabled")
 
 

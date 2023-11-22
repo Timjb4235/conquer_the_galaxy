@@ -149,13 +149,18 @@ class Player:
             database.update_planet_data(planet, "Op_defence", planet_op_defence + 1)
             op_losses = self.units["Operatives"] // 20
             self.units["Operatives"] -= op_losses       
-            return f"Mission successful! You have lost {op_losses} operatives during the mission.\n"
+            return (f"Mission successful! You have lost {op_losses} operatives during the mission.\n" +
+            f"{planet.strip()} has {database.load_planet_data(planet, attribute)} {attribute}. \n" +
+            f"You have {self.units['Operatives']} operatives, and {self.op_missions} op missions remaining. \n" +
+            "What mission would you like to send them on? \n")
         else:
             # Increases target's op defence, and player takes op losses
             database.update_planet_data(planet, "Op_defence", planet_op_defence + 2)
             op_losses = self.units["Operatives"] // 10
             self.units["Operatives"] -= op_losses
-            return f"Mission failed! You have lost {op_losses} operatives during the mission.\n"
+            return (f"Mission failed! You have lost {op_losses} operatives during the mission.\n" +
+            f"You have {self.units['Operatives']} operatives, and {self.op_missions} op missions remaining. \n" +
+            "What mission would you like to send them on? \n")
         
     def steal(self, planet, attribute, database):
         # Called by the display
@@ -185,7 +190,7 @@ class Player:
         return self.units["Operatives"] >= pass_threshold
         
 if __name__ == "__main__":
-    game = Game("optesting")
+    game = Game("optesting2")
     systems = ["System One", "System Two", "System Three", "System Four", "System Five", "System Six", "System Seven"]
     op_missions = ["Spy", "Steal"]
     sysname_files = [1, 2, 3, 4, 5, 6, 7]
@@ -194,7 +199,7 @@ if __name__ == "__main__":
         with open(f"names_{n}.txt", "r") as f:
             names = f.readlines()
         for i in range(10):
-            game.database.populate_galaxy((10*n + i, names.pop(randint(1, len(names) - 1)), system, 500, 10000, 1000, "Standard Planet", "Independent", 500, 0, 0, 0))
+            game.database.populate_galaxy((10*n + i, names.pop(randint(1, len(names) - 1)), system, 500, 10000, 1000, "Standard Planet", "Independent", 500, 0, 1, 0))
     game.database.commit()
     display = display.Display(systems, op_missions, game.database, game.tick)
     display.player = game.player

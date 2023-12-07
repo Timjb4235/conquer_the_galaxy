@@ -71,7 +71,10 @@ class Player:
             "Soldiers": 0,
             "Scientists": 0,
             "Psychics": 0,
-            "Operatives": 0
+            "Operatives": 0,
+            "Attackers": 0,
+            "Defenders": 0,
+            "Elites": 0
         }
         self.shields = {
         }
@@ -83,10 +86,8 @@ class Player:
         self.gold += self.pop
         self.gold += 100 * self.buildings["Mines"]
         self.pop = min(self.pop * 1.01, self.buildings["Houses"] * 50)
-        # Should this be max?
         self.power = self.power + self.buildings["Power Plants"] * 60 - int(self.pop * 0.1) - sum(self.buildings.values())
-        self.power = min(self.power, self.buildings["Power Plants"] * 100)
-        # Should this be max?
+        self.power = max(self.power, self.buildings["Power Plants"] * 100)
         if self.op_missions < 10:
             self.op_missions += 1
         for key in self.research_points:
@@ -129,27 +130,37 @@ class Player:
             self.assigned_scientists[key] = 0
 
     def draft_units(self, draft_requests):
-        try:
-            if sum(draft_requests.values()) <= self.draftable_pop and min(draft_requests.values()) >= 0:
-                for key in draft_requests:
-                    self.units[key] += draft_requests[key]
-                    self.draftable_pop -= draft_requests[key]
-                    print(self.units["Operatives"])
-            else:
-                print("Not enough draftable population!")
-        except:
-            print("Entries must be integers!")
+        # Called by the display. Display should only pass in valid input.
+        if sum(draft_requests.values()) > self.draftable_pop:
+            raise ValueError("Not enough draftable pop!")
+        elif min(draft_requests.values()) < 0:
+            raise ValueError("Entries must be integers")
+        for key in draft_requests:
+            self.units[key] += draft_requests[key]
+            self.draftable_pop -= draft_requests[key]
+
+    def train_units(self, training_requests):
+        # Called by the display. Display should only pass in valid input.
+        if sum(training_requests.values()) > self.units["Soldiers"]:
+            raise ValueError("Not enough soldiers!")
+        elif min(training_requests.values()) < 0:
+            raise ValueError("Entries must be integers!")
+        for key in training_requests:
+                    self.units[key] += training_requests[key]
+                    self.units["Soldiers"] -= training_requests[key]
+
 
     def spy(self, planet, attribute, database):
-        # Called by the display
+        # Called by the display. Check for magic numbers.
         self.op_missions -= 1
         planet_op_defence = database.load_planet_data(planet, "Op_defence")
-        if self.mission_succeeds(planet_op_defence, type = "spy"):
+        if self.mission_succeeds(planet_op_defence, type = "Spy"):
             # Increases target's op defence, and player takes op losses
             database.update_planet_data(planet, "Op_defence", planet_op_defence + 1)
             op_losses = self.units["Operatives"] // 20
             self.units["Operatives"] -= op_losses       
             return (f"Mission successful! You have lost {op_losses} operatives during the mission.\n" +
+            # Provides data
             f"{planet.strip()} has {database.load_planet_data(planet, attribute)} {attribute}. \n" +
             f"You have {self.units['Operatives']} operatives, and {self.op_missions} op missions remaining. \n" +
             "What mission would you like to send them on? \n")
@@ -162,29 +173,97 @@ class Player:
             f"You have {self.units['Operatives']} operatives, and {self.op_missions} op missions remaining. \n" +
             "What mission would you like to send them on? \n")
         
-    def steal(self, planet, attribute, database):
+    def steal(self, planet, database):
+        #temp. Put in game constants instead. Check for magic numbers.
+        gold_per_op = 2
         # Called by the display
         self.op_missions -= 1
         planet_op_defence = database.load_planet_data(planet, "Op_defence")
-        if self.mission_succeeds(planet_op_defence, type = "steal"):
+        if self.mission_succeeds(planet_op_defence, type = "Steal"):
             # Increases target's op defence, and player takes op losses
             database.update_planet_data(planet, "Op_defence", planet_op_defence + 2)
             op_losses = self.units["Operatives"] // 20
-            self.units["Operatives"] -= op_losses       
-            return f"Mission successful! You have lost {op_losses} operatives during the mission.\n"
+            self.units["Operatives"] -= op_losses
+            # Steal gold
+            planet_gold_amount = database.load_planet_data(planet, "Gold")
+            theft_size = min(self.units["Operatives"] * gold_per_op, planet_gold_amount)
+            self.gold += theft_size
+            database.update_planet_data(planet, "Gold", planet_gold_amount - theft_size)
+            return (f"Mission successful! You have lost {op_losses} operatives during the mission.\n" +
+            f"You have stolen {theft_size} Gold from {planet.strip()}.\n" + 
+            f"You have {self.units['Operatives']} operatives, and {self.op_missions} op missions remaining. \n" +
+            "What mission would you like to send them on? \n")
         else:
             # Increases target's op defence, and player takes op losses
             database.update_planet_data(planet, "Op_defence", planet_op_defence + 3)
             op_losses = self.units["Operatives"] // 10
             self.units["Operatives"] -= op_losses
-            return f"Mission failed! You have lost {op_losses} operatives during the mission.\n"
-
+            return (f"Mission failed! You have lost {op_losses} operatives during the mission.\n" + 
+            f"You have {self.units['Operatives']} operatives, and {self.op_missions} op missions remaining. \n" +
+            "What mission would you like to send them on? \n")
+        
+    def kidnap(self, planet, database):
+        #temp. Put in game constants instead. Check for magic numbers.
+        pop_per_op = 1
+        # Called by the display
+        self.op_missions -= 1
+        planet_op_defence = database.load_planet_data(planet, "Op_defence")
+        if self.mission_succeeds(planet_op_defence, type = "Kidnap"):
+            # Increases target's op defence, and player takes op losses
+            database.update_planet_data(planet, "Op_defence", planet_op_defence + 2)
+            op_losses = self.units["Operatives"] // 20
+            self.units["Operatives"] -= op_losses
+            # Steal pop
+            planet_pop_amount = database.load_planet_data(planet, "Pop")
+            theft_size = min(self.units["Operatives"] * pop_per_op, planet_pop_amount)
+            self.pop += theft_size
+            database.update_planet_data(planet, "Pop", planet_pop_amount - theft_size)
+            return (f"Mission successful! You have lost {op_losses} operatives during the mission.\n" +
+            f"You have stolen {theft_size} Population from {planet.strip()}.\n" + 
+            f"You have {self.units['Operatives']} operatives, and {self.op_missions} op missions remaining. \n" +
+            "What mission would you like to send them on? \n")
+        else:
+            # Increases target's op defence, and player takes op losses
+            database.update_planet_data(planet, "Op_defence", planet_op_defence + 3)
+            op_losses = self.units["Operatives"] // 10
+            self.units["Operatives"] -= op_losses
+            return (f"Mission failed! You have lost {op_losses} operatives during the mission.\n" + 
+            f"You have {self.units['Operatives']} operatives, and {self.op_missions} op missions remaining. \n" +
+            "What mission would you like to send them on? \n")
+        
+    def sabotage(self, planet, database):
+        defence_per_op = 0.5
+        # Called by the display. Check for magic numbers.
+        self.op_missions -= 1
+        planet_op_defence = database.load_planet_data(planet, "Op_defence")
+        if self.mission_succeeds(planet_op_defence, type = "Sabotage Defences"):
+            # Decreases target's op defence, and player takes op losses
+            database.update_planet_data(planet, "Op_defence", planet_op_defence - 3)
+            op_losses = self.units["Operatives"] // 10
+            self.units["Operatives"] -= op_losses
+            # Sabotage defence
+            planet_defence = database.load_planet_data(planet, "Defence")
+            defence_reduction = min(self.units["Operatives"] * defence_per_op, planet_defence)
+            database.update_planet_data(planet, "Defence", planet_defence - defence_reduction)
+            return (f"Mission successful! You have lost {op_losses} operatives during the mission.\n" +
+            f"You have successfully reduced the defences of {planet.strip()}.\n" + 
+            f"You have {self.units['Operatives']} operatives, and {self.op_missions} op missions remaining. \n" +
+            "What mission would you like to send them on? \n")
+        else:
+            # Increases target's op defence, and player takes op losses
+            database.update_planet_data(planet, "Op_defence", planet_op_defence + 4)
+            op_losses = self.units["Operatives"] // 10
+            self.units["Operatives"] -= op_losses
+            return (f"Mission failed! You have lost {op_losses} operatives during the mission.\n" + 
+            f"You have {self.units['Operatives']} operatives, and {self.op_missions} op missions remaining. \n" +
+            "What mission would you like to send them on? \n")
 
     def mission_succeeds(self, target_op_defence, type):
         modifiers = {
-            "spy": 0.7,
-            "steal": 1.1,
-            "sabotage": 2.0
+            "Spy": 0.7,
+            "Steal": 1.1,
+            "Kidnap": 1.2,
+            "Sabotage Defences": 2.0
         }
         pass_threshold = target_op_defence * uniform(0.5, 1.5) * modifiers[type]
         return self.units["Operatives"] >= pass_threshold
@@ -192,7 +271,7 @@ class Player:
 if __name__ == "__main__":
     game = Game("optesting2")
     systems = ["System One", "System Two", "System Three", "System Four", "System Five", "System Six", "System Seven"]
-    op_missions = ["Spy", "Steal"]
+    op_missions = ["Spy", "Steal", "Kidnap", "Sabotage Defences"]
     sysname_files = [1, 2, 3, 4, 5, 6, 7]
     for system in systems:
         n = sysname_files.pop(randint(0, len(sysname_files) - 1))

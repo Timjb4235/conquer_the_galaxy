@@ -105,6 +105,20 @@ class Display:
         self.draftable_pop_display = ttk.Label(master = self.right_frame, text = 0)
         self.draftable_pop_display_label = ttk.Label(master = self.right_frame, text = "Draftable Population:")
 
+        # Creating training items
+        self.training_types = ("Attackers", "Defenders", "Elites")
+        self.training_values = [0, 0, 0]
+        self.training_displays = []
+        self.training_display_labels = []
+        self.training_entries = []
+        for i in range(len(self.training_types)):
+            self.training_displays.append(ttk.Label(master = self.right_frame, text = 0))
+            self.training_display_labels.append(ttk.Label(master = self.right_frame, text = self.training_types[i]))
+            self.training_entries.append(ttk.Entry(master = self.right_frame, width = 2))
+        self.current_training_title = ttk.Label(master = self.right_frame, text = "Current")
+        self.new_training_title = ttk.Label(master = self.right_frame, text = "New")
+        self.training_update_button = ttk.Button(master = self.right_frame, text = "Update", command = self.update_training_display)
+
         # Creating shields items
         self.shield_types = ("Military Shield:", "Missile Shield:", "Operative Shield:")
         self.shield_percentages = (0, 0, 0)
@@ -140,6 +154,11 @@ class Display:
         self.op_mission_var.set("Select Mission")
         self.op_mission_choice = ttk.OptionMenu(self.options_frame, self.op_mission_var, "Spy", *op_missions)
         self.send_ops_button = ttk.Button(master = self.options_frame, text = "Send Operatives", command = self.send_ops)
+
+        # Creating attack items
+
+        # Creating psychic items
+
 
         #tk.mainloop()
 
@@ -226,6 +245,15 @@ class Display:
         self.draftable_pop_display.config(text = self.player.draftable_pop)
         self.draftable_pop_display.grid(row = len(self.building_types) + 1, column = 4)
         self.draftable_pop_display_label.grid(row = len(self.building_types) + 1, column = 3)
+        for i in range(len(self.training_types)):
+            self.training_values[i] = self.player.units[self.training_types[i]]
+            self.training_displays[i].config(text = self.training_values[i])
+            self.training_displays[i].grid(row = i + 1, column = 6)
+            self.training_display_labels[i].grid(row = i + 1, column = 5)
+            self.training_entries[i].grid(row = i + 1, column = 7)
+        self.current_training_title.grid(row = 0, column = 6)
+        self.new_training_title.grid(row = 0, column = 7)
+        self.training_update_button.grid(row = 0, column = 8)
 
     def display_research(self):
         self.mode = "research"
@@ -305,6 +333,15 @@ class Display:
                 draft_requests[self.draft_types[i]] = 0
         return draft_requests
     
+    def get_training_requests(self):
+        training_requests = {}
+        for i in range(len(self.training_types)):
+            try:
+                training_requests[self.training_types[i]] = int(self.training_entries[i].get())
+            except ValueError:
+                training_requests[self.training_types[i]] = 0
+        return training_requests
+    
     def get_sci_requests(self):
         sci_requests = {}
         for i in range(len(self.research_types)):
@@ -327,6 +364,13 @@ class Display:
         self.display_units()
         for i in range(len(self.draft_types)):
             self.draft_entries[i].delete(0, "end")
+
+    def update_training_display(self):
+        requests = self.get_training_requests()
+        self.player.train_units(requests)
+        self.display_units()
+        for i in range(len(self.training_types)):
+            self.training_entries[i].delete(0, "end")
 
     def update_sci_display(self):
         requests = self.get_sci_requests()
@@ -351,7 +395,11 @@ class Display:
             if mission == "Spy":
                 self.ops_textbox.insert(tk.END, self.player.spy(self.target_var.get(), attribute = "Pop", database = self.database))
             elif mission == "Steal":
-                self.ops_textbox.insert(tk.END, self.player.steal(self.target_var.get(), attribute = "Pop", database = self.database))
+                self.ops_textbox.insert(tk.END, self.player.steal(self.target_var.get(), database = self.database))
+            elif mission == "Kidnap":
+                self.ops_textbox.insert(tk.END, self.player.kidnap(self.target_var.get(), database = self.database))
+            elif mission == "Sabotage Defences":
+                self.ops_textbox.insert(tk.END, self.player.sabotage(self.target_var.get(), database = self.database))
         self.ops_textbox.configure(state = "disabled")
 
 

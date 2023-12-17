@@ -54,7 +54,9 @@ def test_draft_units_success(game):
     
 def test_mission_success(game):
     game.player.units["Operatives"] += 3
-    assert game.player.mission_succeeds(1, "steal") == True
-    assert game.player.mission_succeeds(4, "sabotage") == False
+    assert game.player.mission_succeeds(1, "Steal") == True
+    assert game.player.mission_succeeds(4, "Sabotage Defences") == False
+
+
 
 

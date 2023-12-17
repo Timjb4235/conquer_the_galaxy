@@ -68,13 +68,14 @@ class Player:
         }
 
         self.units = {
+            "Generals": 4,
             "Soldiers": 0,
             "Scientists": 0,
             "Psychics": 0,
             "Operatives": 0,
             "Attackers": 0,
             "Defenders": 0,
-            "Elites": 0
+            "Elites": 300
         }
         self.shields = {
         }
@@ -267,6 +268,34 @@ class Player:
         }
         pass_threshold = target_op_defence * uniform(0.5, 1.5) * modifiers[type]
         return self.units["Operatives"] >= pass_threshold
+
+    def attack_succeeds(self, units_sent, target, database):
+        for key in units_sent:
+            if self.units[key] < units_sent[key]:
+                raise ValueError(f"Not enough {key} to send!")
+        target_defence = database.load_planet_data(target, "Defence")
+        target_land = database.load_planet_data(target, "Land")
+        # Magic numbers here - adjust these
+        attack = units_sent["Attackers"] * 4 + units_sent["Elites"] * 8
+        # Set up units out with generals
+        # Set up unit losses
+        return attack > max(target_defence, target_land)
+    
+    def destroy_planet(self, planet, database):
+        destruct_retrieval = 0.005
+        salvage = int(database.load_planet_data(planet, "Gold")), int(database.load_planet_data(planet, "Pop")), int(database.load_planet_data(planet, "Land"))
+        self.gold += destruct_retrieval * salvage[0]
+        self.pop += destruct_retrieval * salvage[1]
+        self.land += destruct_retrieval * salvage[2]
+        return (f"{planet.strip()} has been destroyed! We have recovered {salvage[0]} Gold, {salvage[1]} Population and {salvage[2]} Land from the debris.")
+    
+    def attack_fails(self):
+        # Set up units out with generals
+        # Unit losses
+        # Add detail to message
+        return "Attack unsuccessful!"
+
+    
         
 if __name__ == "__main__":
     game = Game("optesting2")
@@ -278,7 +307,7 @@ if __name__ == "__main__":
         with open(f"names_{n}.txt", "r") as f:
             names = f.readlines()
         for i in range(10):
-            game.database.populate_galaxy((10*n + i, names.pop(randint(1, len(names) - 1)), system, 500, 10000, 1000, "Standard Planet", "Independent", 500, 0, 1, 0))
+            game.database.populate_galaxy((10*n + i, names.pop(randint(1, len(names) - 1)), system, 500, 10000, 1000, "Standard Planet", "Independent", 0, 0, 1, 0))
     game.database.commit()
     display = display.Display(systems, op_missions, game.database, game.tick)
     display.player = game.player

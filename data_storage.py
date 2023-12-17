@@ -79,5 +79,9 @@ class Database:
         self.cursor.execute(query)
         return [item[0] for item in self.cursor.fetchall()]
     
+    def remove_planet(self, name):
+        query = f"DELETE FROM Planets WHERE Name = '{name}'"
+        self.cursor.execute(query)
+    
     def commit(self):
         self.connection.commit()

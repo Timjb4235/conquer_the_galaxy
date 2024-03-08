@@ -2,6 +2,7 @@ import data_storage
 import display
 from random import randint, uniform
 import tkinter as tk
+import json
 
 class Game:
 
@@ -29,21 +30,18 @@ class Player:
 
     def __init__(self, name):
         # Values can be in thousands
+        with open("config.json") as f:
+            constants = json.load(f)
+            starting_resources = constants["player_starting_resources"]
         self.name = name
-        self.land = 500
-        self.gold = 10000
-        self.power = 5000
-        self.pop = 4000
+        self.land = starting_resources["land"]
+        self.gold = starting_resources["gold"]
+        self.power = starting_resources["power"]
+        self.pop = starting_resources["pop"]
+        # Make draftable pop a property
         self.draftable_pop = int(self.pop * 0.01)
-        self.op_missions = 10
-        self.buildings = {
-            "Houses": 80,
-            "Mines": 100,
-            "Power Plants": 50,
-            "Op Centres": 1,
-            "Psychic Centres": 1,
-            "Barracks": 80
-            }
+        self.op_missions = starting_resources["player_stats"]["max_op_missions"]
+        self.buildings = starting_resources["buildings"]
         self.research_points = {
             "Space Exploration": 0,
             "Terraforming": 0,
@@ -67,20 +65,12 @@ class Player:
             "Superweapons": 0
         }
 
-        self.units = {
-            "Generals": 4,
-            "Soldiers": 0,
-            "Scientists": 0,
-            "Psychics": 0,
-            "Operatives": 0,
-            "Attackers": 0,
-            "Defenders": 0,
-            "Elites": 300
-        }
+        self.units = starting_resources["units"]
         self.shields = {
         }
         self.superweapons = {
         }
+        self.generals_away = []
 
     def tick(self):
         # Update player stats
@@ -94,6 +84,16 @@ class Player:
         for key in self.research_points:
             self.research_points[key] += self.assigned_scientists[key]
         self.update_draftable_pop()
+        # Generals move towards home
+        for general in self.generals_away:
+            general.turns -= 1
+            print(general)
+            if general.turns <= 0:
+                # General returns
+                self.units["Generals"] += 1
+                for key in general.units_taken:
+                    self.units[key] += general.units_taken[key]
+                self.generals_away.remove(general)
               
 
     def spare_land(self):
@@ -270,32 +270,65 @@ class Player:
         return self.units["Operatives"] >= pass_threshold
 
     def attack_succeeds(self, units_sent, target, database):
+        # Adjust for magic numbers, for scaling with more units, for readability
         for key in units_sent:
             if self.units[key] < units_sent[key]:
                 raise ValueError(f"Not enough {key} to send!")
         target_defence = database.load_planet_data(target, "Defence")
         target_land = database.load_planet_data(target, "Land")
-        # Magic numbers here - adjust these
         attack = units_sent["Attackers"] * 4 + units_sent["Elites"] * 8
         # Set up units out with generals
+        army_divisions = units_sent["Generals"]
+        unit_division = {
+            "Attackers": units_sent["Attackers"] // army_divisions,
+            "Elites": units_sent["Elites"] // army_divisions
+        }
+        for i in range(army_divisions):
+            self.generals_away.append(GeneralAway(unit_division, (12 * (i + 1)) // army_divisions))
+            self.units["Generals"] -= 1
+        self.units["Attackers"] -= units_sent["Attackers"]
+        self.units["Elites"] -= units_sent["Elites"]
         # Set up unit losses
         return attack > max(target_defence, target_land)
     
     def destroy_planet(self, planet, database):
         destruct_retrieval = 0.005
-        salvage = int(database.load_planet_data(planet, "Gold")), int(database.load_planet_data(planet, "Pop")), int(database.load_planet_data(planet, "Land"))
-        self.gold += destruct_retrieval * salvage[0]
-        self.pop += destruct_retrieval * salvage[1]
-        self.land += destruct_retrieval * salvage[2]
-        return (f"{planet.strip()} has been destroyed! We have recovered {salvage[0]} Gold, {salvage[1]} Population and {salvage[2]} Land from the debris.")
+        salvage = (database.load_planet_data(planet, "Gold"), database.load_planet_data(planet, "Pop"), database.load_planet_data(planet, "Land"))
+        gold_retrieved = int(destruct_retrieval * salvage[0])
+        pop_retrieved = int(destruct_retrieval * salvage[1])
+        land_retrieved = int(destruct_retrieval * salvage[2])
+        self.gold += gold_retrieved
+        self.pop += pop_retrieved
+        self.land += land_retrieved
+        return (f"{planet.strip()} has been destroyed! We have recovered {gold_retrieved} Gold, {pop_retrieved} Population and {land_retrieved} Land from the debris.")
     
+    def make_vassal(self, planet, database):
+        database.update_planet_data(planet, "Owner", self.name)
+        database.update_planet_data(planet, "Type", "Vassal")
+        return (f"{planet.strip()} has been made a vassal state of our empire.")
+    
+    def conquer(self, planet, database):
+        database.update_planet_data(planet, "Owner", self.name)
+        database.update_planet_data(planet, "Type", "Conquered")
+        return (f"We have occupied {planet.strip()}.")
+
     def attack_fails(self):
         # Set up units out with generals
         # Unit losses
         # Add detail to message
         return "Attack unsuccessful!"
 
-    
+class GeneralAway:
+
+    def __init__(self, units_taken, turns):
+        self.units_taken = units_taken
+        self.turns = turns
+
+    def __repr__(self):
+        return f"Attackers: {self.units_taken['Attackers']} + Elites: {self.units_taken['Elites']} + Turns left: {self.turns}"
+  
+    def __del__(self):
+        pass
         
 if __name__ == "__main__":
     game = Game("optesting2")

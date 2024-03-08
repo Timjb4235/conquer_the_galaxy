@@ -37,7 +37,7 @@ class Display:
         self.info_button = ttk.Button(master = self.options_frame, text = "More Info")
         self.readme_button = ttk.Button(master = self.options_frame, text = "Readme")
         self.tick = tick
-        self.end_turn_button = ttk.Button(master = self.options_frame, text = "End Turn", command = self.tick)
+        self.end_turn_button = ttk.Button(master = self.options_frame, text = "End Turn", command = self.end_turn)
         self.end_turn_button.pack()
 
         # Creating planet items
@@ -157,7 +157,7 @@ class Display:
         self.send_ops_button = ttk.Button(master = self.options_frame, text = "Send Operatives", command = self.send_ops)
 
         # Creating attack items
-        self.attack_textbox = st.ScrolledText(master = self.right_frame, width = 98, height = 13.5)
+        self.attack_textbox = st.ScrolledText(master = self.right_frame, width = 90, height = 13.5)
         self.send_attack_button = ttk.Button(master = self.options_frame, text = "Attack!", command = self.send_attack)
         self.attack_frame = ttk.Frame(master = self.right_frame)
         self.attack_options = ("Generals", "Attackers", "Elites")        
@@ -172,19 +172,35 @@ class Display:
         self.invasion_popup.protocol("WM_DELETE_WINDOW", self.destroy_planet)
         invasion_message = ttk.Label(master = self.invasion_popup, text = "Attack successful! What would you like to do with the conquered planet?")
         invasion_message.grid(row = 0, rowspan = 3, sticky = "N")
-        self.conquer_button = ttk.Button(master = self.invasion_popup, text = "Conquer")
-        self.vassalise_button = ttk.Button(master = self.invasion_popup, text = "Make Vassal")
+        self.conquer_button = ttk.Button(master = self.invasion_popup, text = "Conquer", command = self.conquer)
+        self.vassalise_button = ttk.Button(master = self.invasion_popup, text = "Make Vassal", command = self.make_vassal)
         self.destroy_button = ttk.Button(master = self.invasion_popup, text = "Destroy", command = self.destroy_planet)
         # look up 'tkinter balloon' to get tooltips setup
         self.conquer_button.grid()
         self.vassalise_button.grid()
         self.destroy_button.grid()
-        self.invasion_popup.withdraw()
-        
+        self.invasion_popup.withdraw()        
         for i in range(len(self.attack_options)):
             self.attack_displays.append(ttk.Label(master = self.attack_frame, text = 0))
             self.attack_display_labels.append(ttk.Label(master = self.attack_frame, text = self.attack_options[i]))
             self.attack_entries.append(ttk.Entry(master = self.attack_frame, width = 2))
+
+        # Create generals items
+            self.generals_frame = ttk.Frame(master = self.right_frame,  width = 100, height = 13.5)
+            self.generals_frame.grid()
+            self.generals_tree = ttk.Treeview(master = self.generals_frame, columns = ("general", "attackers", "elites", "turns"), show = "headings")
+            self.generals_tree.heading("general", text = "General")
+            self.generals_tree.column("general", width = 60)
+            self.generals_tree.heading("attackers", text = "Attackers")
+            self.generals_tree.column("attackers", width = 60)
+            self.generals_tree.heading("elites", text = "Elites")
+            self.generals_tree.column("elites", width = 50)
+            self.generals_tree.heading("turns", text = "Turns Remaining")
+            self.generals_tree.column("turns", width = 100)
+            
+
+
+
 
 
         # Creating psychic items
@@ -353,6 +369,7 @@ class Display:
         self.target_choice.pack()
         self.send_attack_button.pack()
         self.attack_frame.grid(row = 0, column = 0)
+        self.generals_frame.grid(row = 0, column = 3)
         self.attack_textbox.grid(row = 0, column = 1, sticky = "N")
         self.attack_textbox.configure(state = "normal")
         self.attack_textbox.delete("1.0", "end")
@@ -366,8 +383,35 @@ class Display:
             self.attack_displays[i].grid(row = i + 1, column = 1)
             self.attack_display_labels[i].grid(row = i + 1, column = 0)
             self.attack_entries[i].grid(row = i + 1, column = 2)
+        for row in self.tree.get_children():
+            self.tree.delete(row)
+        for general in self.player.generals_away:
+            data = (1, general.units_taken["Attackers"], general.units_taken["Elites"], general.turns)
+            self.generals_tree.insert("", tk.END, values = data)
+        self.generals_tree.grid(row = 0, column = 0, sticky = "W")
+
+    def end_turn(self):
+        self.tick()
+        match self.mode:
+            case "planet":
+                self.display_planet_data()
+            case "system":
+                self.display_system()
+            case "building":
+                self.display_building()
+            case "units":
+                self.display_units()
+            case "research":
+                self.display_research()
+            case "shields":
+                self.display_shields()
+            case "operatives":
+                self.display_operatives()
+            case "military":
+                self.display_military()
 
 
+        
 
 
 
@@ -466,12 +510,14 @@ class Display:
         self.ops_textbox.configure(state = "disabled")
 
     def send_attack(self):
+        # Get information from the display
         attack_values = {}
         for i in range(len(self.attack_options)):
             try:
                 attack_values[self.attack_options[i]] = int(self.attack_entries[i].get())
             except ValueError:
                 attack_values[self.attack_options[i]] = 0
+        # Popup if successful
         if self.player.attack_succeeds(attack_values, self.target_var.get(), database = self.database):
             self.invasion_popup.deiconify()
             self.invasion_popup.grab_set()
@@ -499,6 +545,31 @@ class Display:
         # Close window
         self.close_popup()
 
+    def make_vassal(self):
+        target = self.target_var.get()
+        # Printing message and changing planet status
+        self.attack_textbox.configure(state = "normal")
+        self.attack_textbox.insert(tk.END, self.player.make_vassal(target, self.database))
+        self.attack_textbox.configure(state = "disabled")
+        # Resetting target menu
+        system = self.system_var.get()
+        targets = self.database.get_planet_names(system)
+        self.target_choice.set_menu(targets[0], *targets)
+        # Close window
+        self.close_popup()
+
+    def conquer(self):
+        target = self.target_var.get()
+        # Printing message and changing planet status
+        self.attack_textbox.configure(state = "normal")
+        self.attack_textbox.insert(tk.END, self.player.conquer(target, self.database))
+        self.attack_textbox.configure(state = "disabled")
+        # Resetting target menu
+        system = self.system_var.get()
+        targets = self.database.get_planet_names(system)
+        self.target_choice.set_menu(targets[0], *targets)
+        # Close window
+        self.close_popup()
 
 
     

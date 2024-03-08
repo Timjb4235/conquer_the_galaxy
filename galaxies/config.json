@@ -1,0 +1,48 @@
+{
+    "player_starting_resources": {
+        "land": 500, 
+        "gold": 10000, 
+        "power": 5000, 
+        "pop": 4000, 
+        "buildings": {
+            "Houses": 80,
+            "Mines": 100,
+            "Power Plants": 50,
+            "Op Centres": 1,
+            "Psychic Centres": 1,
+            "Barracks": 80
+        },
+        "units": {
+            "Generals": 4,
+            "Soldiers": 0,
+            "Scientists": 0,
+            "Psychics": 0,
+            "Operatives": 0,
+            "Attackers": 0,
+            "Defenders": 0,
+            "Elites": 300
+        },
+        "player_stats": {
+            "max_op_missions": 10, 
+            "draftable_multiplier": 0.01, 
+            "max_generals": 4, 
+            "resource_gains": {
+                "mines": 100,
+                "pop_multiplier": 1.01,
+                "house capacity": 50,
+                "power_plants": 60,
+                "power_plant_storage": 100
+            },
+            "max_return_time": 12,
+            "unit_attack": {
+                "Attackers": 4,
+                "Defenders": 0,
+                "Elites": 8
+            },
+            "unit_defence": {
+                "Attackers": 0,
+                "Defenders": 4,
+                "Elites": 8
+            }
+        }        
+}}

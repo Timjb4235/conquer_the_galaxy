@@ -45,17 +45,27 @@ def test_draft_units_success(game):
             "Operatives": 3
         }
     game.player.draft_units(draft_requests)
-    assert game.player.units == {
-            "Soldiers": 5,
-            "Scientists": 10,
-            "Psychics": 1,
-            "Operatives": 3
-        }
+    assert game.player.units["Soldiers"] == 5
+    assert game.player.units["Scientists"] == 10
+    assert game.player.units["Psychics"] == 1
+    assert game.player.units["Operatives"] == 3
+
     
 def test_mission_success(game):
     game.player.units["Operatives"] += 3
     assert game.player.mission_succeeds(1, "Steal") == True
     assert game.player.mission_succeeds(4, "Sabotage Defences") == False
+
+def test_general_return(game):
+    unit_division = {"Attackers": 1000, "Elites": 1000}
+    game.player.units["Generals"] = 3
+    game.player.generals_away.append(GeneralAway(unit_division, 1))
+    attackers, elites = game.player.units["Attackers"], game.player.units["Elites"]
+    game.player.tick()
+    assert game.player.units["Generals"] == 4
+    assert game.player.units["Attackers"] >= attackers + 1000
+    assert game.player.units["Elites"] >= elites + 1000
+
 
 
 
